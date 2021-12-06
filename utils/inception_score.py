@@ -37,7 +37,7 @@ def get_inception_score(images, splits=10):
         img = img.astype(np.float32)
         inps.append(np.expand_dims(img, 0))
     bs = 100
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         preds = []
         n_batches = int(math.ceil(float(len(inps)) / float(bs)))
         for i in tqdm(range(n_batches), desc="Calculate inception score"):
@@ -94,16 +94,15 @@ def _init_inception():
         for op_idx, op in enumerate(ops):
             for o in op.outputs:
                 shape = o.get_shape()
-                if shape._dims != []:
-                    if None not in shape: # added this condition -CB20211206
-                        shape = [s for s in shape] # s.value for s in shape
-                        new_shape = []
-                        for j, s in enumerate(shape):
-                            if s == 1 and j == 0:
-                                new_shape.append(None)
-                            else:
-                                new_shape.append(s)
-                        o.__dict__["_shape_val"] = tf.TensorShape(new_shape)
+                if shape._dims is not None:#!= []: # changed this condition -CB20211206
+                    shape = [s for s in shape] # s.value for s in shape
+                    new_shape = []
+                    for j, s in enumerate(shape):
+                        if s == 1 and j == 0:
+                            new_shape.append(None)
+                        else:
+                            new_shape.append(s)
+                    o.__dict__["_shape_val"] = tf.TensorShape(new_shape)
         w = sess.graph.get_operation_by_name("softmax/logits/MatMul").inputs[1]
         logits = tf.matmul(tf.squeeze(pool3, [1, 2]), w)
         softmax = tf.nn.softmax(logits)
