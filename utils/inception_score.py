@@ -8,9 +8,10 @@ import sys
 import tarfile
 
 import numpy as np
-import tensorflow as tf
 from six.moves import urllib
 from tqdm import tqdm
+
+import tensorflow as tf
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 MODEL_DIR = "/tmp/imagenet"
@@ -19,7 +20,7 @@ DATA_URL = (
 )
 softmax = None
 
-config = tf.ConfigProto()
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
 
 
@@ -80,28 +81,29 @@ def _init_inception():
         statinfo = os.stat(filepath)
         print("Succesfully downloaded", filename, statinfo.st_size, "bytes.")
     tarfile.open(filepath, "r:gz").extractall(MODEL_DIR)
-    with tf.gfile.FastGFile(
+    with tf.compat.v1.gfile.FastGFile(
         os.path.join(MODEL_DIR, "classify_image_graph_def.pb"), "rb"
     ) as f:
-        graph_def = tf.GraphDef()
+        graph_def = tf.compat.v1.GraphDef()
         graph_def.ParseFromString(f.read())
         _ = tf.import_graph_def(graph_def, name="")
     # Works with an arbitrary minibatch size.
-    with tf.Session(config=config) as sess:
+    with tf.compat.v1.Session(config=config) as sess:
         pool3 = sess.graph.get_tensor_by_name("pool_3:0")
         ops = pool3.graph.get_operations()
         for op_idx, op in enumerate(ops):
             for o in op.outputs:
                 shape = o.get_shape()
                 if shape._dims != []:
-                    shape = [s.value for s in shape]
-                    new_shape = []
-                    for j, s in enumerate(shape):
-                        if s == 1 and j == 0:
-                            new_shape.append(None)
-                        else:
-                            new_shape.append(s)
-                    o.__dict__["_shape_val"] = tf.TensorShape(new_shape)
+                    if None not in shape: # added this condition -CB20211206
+                        shape = [s for s in shape] # s.value for s in shape
+                        new_shape = []
+                        for j, s in enumerate(shape):
+                            if s == 1 and j == 0:
+                                new_shape.append(None)
+                            else:
+                                new_shape.append(s)
+                        o.__dict__["_shape_val"] = tf.TensorShape(new_shape)
         w = sess.graph.get_operation_by_name("softmax/logits/MatMul").inputs[1]
         logits = tf.matmul(tf.squeeze(pool3, [1, 2]), w)
         softmax = tf.nn.softmax(logits)
