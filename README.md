@@ -8,3 +8,7 @@
 
 3) Run an experiment
 ```sh exps/autogan_search.py```
+
+Note : There are weird errors when using multiple GPUs. Specify this in the command line before running the experiment to use only one GPU and avoid these errors.
+
+```export CUDA_VISIBLE_DEVICES=1```
