@@ -3,9 +3,7 @@ scipy
 six
 numpy
 python-dateutil==2.7.3
-torchvision
 tensorboard==1.12.2
 tensorboardX==1.6
 tqdm==4.29.1
-torch
 tensorflow-gpu
