@@ -37,8 +37,8 @@ def main():
     create_inception_graph(inception_path)
 
     # import network
-    gen_net = eval("models." + args.gen_model + ".Generator")(args=args).cuda()
-    dis_net = eval("models." + args.dis_model + ".Discriminator")(args=args).cuda()
+    gen_net = eval("models." + args.gen_model + ".Generator")(args=args).cuda(0)
+    dis_net = eval("models." + args.dis_model + ".Discriminator")(args=args).cuda(0)
 
     # weight init
     def weights_init(m):

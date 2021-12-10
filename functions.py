@@ -21,6 +21,124 @@ from utils.inception_score import get_inception_score
 
 logger = logging.getLogger(__name__)
 
+def train_shared_cgan(
+    args,
+    gen_net: nn.Module,
+    dis_net: nn.Module,
+    g_loss_history,
+    d_loss_history,
+    controller,
+    gen_optimizer,
+    dis_optimizer,
+    train_loader,
+    prev_hiddens=None,
+    prev_archs=None,
+):
+    dynamic_reset = False
+    logger.info("=> train shared conditional GAN...")
+    step = 0
+    gen_step = 0
+
+    # train mode
+    gen_net.train()
+    dis_net.train()
+
+    # eval mode
+    controller.eval()
+    for epoch in range(args.shared_epoch):
+        for iter_idx, (imgs, labels) in enumerate(train_loader):
+
+            # sample an arch
+            arch = controller.sample(
+                1, prev_hiddens=prev_hiddens, prev_archs=prev_archs
+            )[0][0]
+            gen_net.set_arch(arch, controller.cur_stage)
+            dis_net.cur_stage = controller.cur_stage
+            # Adversarial ground truths
+            real_imgs = imgs.type(torch.cuda.FloatTensor)
+            labels = labels.type(torch.cuda.FloatTensor)
+
+            # Sample noise as generator input
+            z = torch.cuda.FloatTensor(
+                np.random.normal(0, 1, (imgs.shape[0], args.latent_dim))
+            )
+
+            # ---------------------
+            #  Train Discriminator
+            # ---------------------
+            dis_optimizer.zero_grad()
+            
+            real_validity = dis_net(real_imgs, labels)
+            fake_imgs = gen_net(z, labels).detach()
+            assert fake_imgs.size() == real_imgs.size(), print(
+                f"fake image size is {fake_imgs.size()}, "
+                f"while real image size is {real_imgs.size()}"
+            )
+
+            fake_validity = dis_net(fake_imgs, labels)
+
+            # cal loss
+            d_loss = torch.mean(
+                nn.ReLU(inplace=True)(1.0 - real_validity)
+            ) + torch.mean(nn.ReLU(inplace=True)(1 + fake_validity))
+            d_loss.backward()
+            dis_optimizer.step()
+
+            # add to window
+            d_loss_history.push(d_loss.item())
+
+            # -----------------
+            #  Train Generator
+            # -----------------
+            if step % args.n_critic == 0:
+                gen_optimizer.zero_grad()
+
+                gen_z = torch.cuda.FloatTensor(
+                    np.random.normal(0, 1, (labels.shape[0], args.latent_dim))
+                )
+                gen_imgs = gen_net(gen_z, labels)
+                fake_validity = dis_net(gen_imgs, labels)
+
+                # cal loss
+                g_loss = -torch.mean(fake_validity)
+                g_loss.backward()
+                gen_optimizer.step()
+
+                # add to window
+                g_loss_history.push(g_loss.item())
+                gen_step += 1
+
+            # verbose
+            if gen_step and iter_idx % args.print_freq == 0:
+                logger.info(
+                    "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+                    % (
+                        epoch,
+                        args.shared_epoch,
+                        iter_idx % len(train_loader),
+                        len(train_loader),
+                        d_loss.item(),
+                        g_loss.item(),
+                    )
+                )
+
+            # check window
+            if g_loss_history.is_full():
+                if (
+                    g_loss_history.get_var() < args.dynamic_reset_threshold
+                    or d_loss_history.get_var() < args.dynamic_reset_threshold
+                ):
+                    dynamic_reset = True
+                    logger.info("=> dynamic resetting triggered")
+                    g_loss_history.clear()
+                    d_loss_history.clear()
+                    return dynamic_reset
+
+            step += 1
+
+    return dynamic_reset
+
+
 
 def train_shared(
     args,
@@ -69,7 +187,7 @@ def train_shared(
             dis_optimizer.zero_grad()
 
             real_validity = dis_net(real_imgs)
-            fake_imgs = gen_net(z).detach()
+            fake_imgs = gen_net(z,labels).detach()
             assert fake_imgs.size() == real_imgs.size(), print(
                 f"fake image size is {fake_imgs.size()}, "
                 f"while real image size is {real_imgs.size()}"
@@ -158,7 +276,7 @@ def train(
     gen_net = gen_net.train()
     dis_net = dis_net.train()
 
-    for iter_idx, (imgs, _) in enumerate(tqdm(train_loader)):
+    for iter_idx, (imgs, labels) in enumerate(tqdm(train_loader)):
         global_steps = writer_dict["train_global_steps"]
 
         # Adversarial ground truths
@@ -174,11 +292,11 @@ def train(
         # ---------------------
         dis_optimizer.zero_grad()
 
-        real_validity = dis_net(real_imgs)
-        fake_imgs = gen_net(z).detach()
+        real_validity = dis_net(real_imgs,labels)
+        fake_imgs = gen_net(z,labels).detach()
         assert fake_imgs.size() == real_imgs.size()
 
-        fake_validity = dis_net(fake_imgs)
+        fake_validity = dis_net(fake_imgs,labels)
 
         # cal loss
         d_loss = torch.mean(nn.ReLU(inplace=True)(1.0 - real_validity)) + torch.mean(
@@ -198,8 +316,8 @@ def train(
             gen_z = torch.cuda.FloatTensor(
                 np.random.normal(0, 1, (args.gen_batch_size, args.latent_dim))
             )
-            gen_imgs = gen_net(gen_z)
-            fake_validity = dis_net(gen_imgs)
+            gen_imgs = gen_net(gen_z,labels)
+            fake_validity = dis_net(gen_imgs,labels)
 
             # cal loss
             g_loss = -torch.mean(fake_validity)
@@ -264,7 +382,7 @@ def train_controller(
             is_score = get_is(args, gen_net, args.rl_num_eval_img)
             logger.info(f"get Inception score of {is_score}")
             cur_batch_rewards.append(is_score)
-        cur_batch_rewards = torch.tensor(cur_batch_rewards, requires_grad=False).cuda()
+        cur_batch_rewards = torch.tensor(cur_batch_rewards, requires_grad=False).cuda(0)
         cur_batch_rewards = (
             cur_batch_rewards.unsqueeze(-1) + args.entropy_coeff * entropies
         )  # bs * 1
@@ -316,10 +434,13 @@ def get_is(args, gen_net: nn.Module, num_img):
         z = torch.cuda.FloatTensor(
             np.random.normal(0, 1, (args.eval_batch_size, args.latent_dim))
         )
+        labels = torch.cuda.FloatTensor(
+            np.random.randint(0, args.n_classes, (args.eval_batch_size))
+        )
 
         # Generate a batch of images
         gen_imgs = (
-            gen_net(z)
+            gen_net(z,labels)
             .mul_(127.5)
             .add_(127.5)
             .clamp_(0.0, 255.0)
@@ -344,7 +465,7 @@ def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir
     gen_net = gen_net.eval()
 
     # generate images
-    sample_imgs = gen_net(fixed_z)
+    sample_imgs = gen_net(fixed_z,labels)
     img_grid = make_grid(sample_imgs, nrow=5, normalize=True, scale_each=True)
 
     # get fid and inception score
@@ -360,7 +481,7 @@ def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir
 
         # Generate a batch of images
         gen_imgs = (
-            gen_net(z)
+            gen_net(z,labels)
             .mul_(127.5)
             .add_(127.5)
             .clamp_(0.0, 255.0)

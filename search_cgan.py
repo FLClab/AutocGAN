@@ -16,7 +16,7 @@ from tqdm import tqdm
 import cfg
 import datasets
 import models_search  # noqa
-from functions import get_topk_arch_hidden, train_controller, train_shared
+from functions import get_topk_arch_hidden, train_controller, train_shared_cgan
 from utils.fid_score import check_or_download_inception, create_inception_graph
 from utils.inception_score import _init_inception
 from utils.utils import create_logger, RunningStats, save_checkpoint, set_log_dir
@@ -58,10 +58,10 @@ def create_ctrler(args, cur_stage, weights_init):
 
 
 def create_shared_gan(args, weights_init):
-    gen_net = eval("models_search." + args.gen_model + ".Generator")(args=args).cuda(0)
+    gen_net = eval("models_search." + args.gen_model + ".Generator")(args=args).cuda()
     dis_net = eval("models_search." + args.dis_model + ".Discriminator")(
         args=args
-    ).cuda(0)
+    ).cuda()
     gen_net.apply(weights_init)
     dis_net.apply(weights_init)
     gen_optimizer = torch.optim.Adam(
@@ -116,7 +116,7 @@ def main():
 
     # set writer
     if args.load_path:
-        print(f"=> resuming from {args.load_path}")
+        print("=> resuming from {args.load_path}")
         assert os.path.exists(args.load_path)
         checkpoint_file = os.path.join(args.load_path, "Model", "checkpoint.pth")
         assert os.path.exists(checkpoint_file)
@@ -138,7 +138,7 @@ def main():
         args.path_helper = checkpoint["path_helper"]
         logger = create_logger(args.path_helper["log_path"])
         logger.info(
-            f"=> loaded checkpoint {checkpoint_file} (search iteration {start_search_iter})"
+            "=> loaded checkpoint {checkpoint_file} (search iteration {start_search_iter})"
         )
     else:
         # create new log dir
@@ -169,12 +169,12 @@ def main():
     for search_iter in tqdm(
         range(int(start_search_iter), int(args.max_search_iter)), desc="search progress"
     ):
-        logger.info(f"<start search iteration {search_iter}>")
+        logger.info("<start search iteration {search_iter}>")
         if search_iter == args.grow_step1 or search_iter == args.grow_step2:
 
             # save
             cur_stage = grow_ctrler.cur_stage(search_iter)
-            logger.info(f"=> grow to stage {cur_stage}")
+            logger.info("=> grow to stage {cur_stage}")
             prev_archs, prev_hiddens = get_topk_arch_hidden(
                 args, controller, gen_net, prev_archs, prev_hiddens
             )
@@ -187,7 +187,7 @@ def main():
             dataset = datasets.ImageDataset(args, 2 ** (cur_stage + 3))
             train_loader = dataset.train
 
-        dynamic_reset = train_shared(
+        dynamic_reset = train_shared_cgan(
             args,
             gen_net,
             dis_net,
@@ -241,7 +241,7 @@ def main():
     final_archs, _ = get_topk_arch_hidden(
         args, controller, gen_net, prev_archs, prev_hiddens
     )
-    logger.info(f"discovered archs: {final_archs}")
+    logger.info("discovered archs: {final_archs}")
 
 
 if __name__ == "__main__":

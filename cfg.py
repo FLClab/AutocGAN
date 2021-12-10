@@ -202,6 +202,11 @@ def parse_args():
         "--arch", nargs="+", type=int, help="the vector of a discovered architecture"
     )
 
+    # conditional GAN
+    parser.add_argument(
+        "--n_classes", type=int, default=10, help="number of classes"
+    ) 
+
     opt = parser.parse_args()
 
     return opt
