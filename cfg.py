@@ -95,7 +95,8 @@ def parse_args():
         default=False,
         help="add spectral_norm on generator?",
     )
-    parser.add_argument("--dataset", type=str, default="cifar10", help="dataset type")
+    parser.add_argument("--dataset", type=str,
+                        default="cifar10", help="dataset type")
     parser.add_argument(
         "--data_path", type=str, default="./data", help="The path of data set"
     )
@@ -190,6 +191,12 @@ def parse_args():
         help="preserve topk models architectures after each stage",
     )
     parser.add_argument(
+        "--topp",
+        type=float,
+        default=0.90,
+        help="preserve smallest set of model architectures that have prob > p"
+    )
+    parser.add_argument(
         "--entropy_coeff", type=float, default=1e-3, help="to encourage the exploration"
     )
     parser.add_argument(
@@ -205,7 +212,7 @@ def parse_args():
     # conditional GAN
     parser.add_argument(
         "--n_classes", type=int, default=10, help="number of classes"
-    ) 
+    )
 
     opt = parser.parse_args()
 

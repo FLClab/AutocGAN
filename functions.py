@@ -21,6 +21,7 @@ from utils.inception_score import get_inception_score
 
 logger = logging.getLogger(__name__)
 
+
 def train_shared_cgan(
     args,
     gen_net: nn.Module,
@@ -67,7 +68,7 @@ def train_shared_cgan(
             #  Train Discriminator
             # ---------------------
             dis_optimizer.zero_grad()
-            
+
             real_validity = dis_net(real_imgs, labels)
             fake_imgs = gen_net(z, labels).detach()
             assert fake_imgs.size() == real_imgs.size(), print(
@@ -139,7 +140,6 @@ def train_shared_cgan(
     return dynamic_reset
 
 
-
 def train_shared(
     args,
     gen_net: nn.Module,
@@ -187,7 +187,7 @@ def train_shared(
             dis_optimizer.zero_grad()
 
             real_validity = dis_net(real_imgs)
-            fake_imgs = gen_net(z,labels).detach()
+            fake_imgs = gen_net(z, labels).detach()
             assert fake_imgs.size() == real_imgs.size(), print(
                 f"fake image size is {fake_imgs.size()}, "
                 f"while real image size is {real_imgs.size()}"
@@ -212,7 +212,8 @@ def train_shared(
                 gen_optimizer.zero_grad()
 
                 gen_z = torch.cuda.FloatTensor(
-                    np.random.normal(0, 1, (args.gen_batch_size, args.latent_dim))
+                    np.random.normal(
+                        0, 1, (args.gen_batch_size, args.latent_dim))
                 )
                 gen_imgs = gen_net(gen_z)
                 fake_validity = dis_net(gen_imgs)
@@ -292,11 +293,11 @@ def train(
         # ---------------------
         dis_optimizer.zero_grad()
 
-        real_validity = dis_net(real_imgs,labels)
-        fake_imgs = gen_net(z,labels).detach()
+        real_validity = dis_net(real_imgs, labels)
+        fake_imgs = gen_net(z, labels).detach()
         assert fake_imgs.size() == real_imgs.size()
 
-        fake_validity = dis_net(fake_imgs,labels)
+        fake_validity = dis_net(fake_imgs, labels)
 
         # cal loss
         d_loss = torch.mean(nn.ReLU(inplace=True)(1.0 - real_validity)) + torch.mean(
@@ -316,8 +317,8 @@ def train(
             gen_z = torch.cuda.FloatTensor(
                 np.random.normal(0, 1, (args.gen_batch_size, args.latent_dim))
             )
-            gen_imgs = gen_net(gen_z,labels)
-            fake_validity = dis_net(gen_imgs,labels)
+            gen_imgs = gen_net(gen_z, labels)
+            fake_validity = dis_net(gen_imgs, labels)
 
             # cal loss
             g_loss = -torch.mean(fake_validity)
@@ -382,7 +383,8 @@ def train_controller(
             is_score = get_is(args, gen_net, args.rl_num_eval_img)
             logger.info(f"get Inception score of {is_score}")
             cur_batch_rewards.append(is_score)
-        cur_batch_rewards = torch.tensor(cur_batch_rewards, requires_grad=False).cuda(0)
+        cur_batch_rewards = torch.tensor(
+            cur_batch_rewards, requires_grad=False).cuda(0)
         cur_batch_rewards = (
             cur_batch_rewards.unsqueeze(-1) + args.entropy_coeff * entropies
         )  # bs * 1
@@ -440,7 +442,7 @@ def get_is(args, gen_net: nn.Module, num_img):
 
         # Generate a batch of images
         gen_imgs = (
-            gen_net(z,labels)
+            gen_net(z, labels)
             .mul_(127.5)
             .add_(127.5)
             .clamp_(0.0, 255.0)
@@ -465,11 +467,12 @@ def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir
     gen_net = gen_net.eval()
 
     # generate images
-    sample_imgs = gen_net(fixed_z,labels)
+    sample_imgs = gen_net(fixed_z, labels)
     img_grid = make_grid(sample_imgs, nrow=5, normalize=True, scale_each=True)
 
     # get fid and inception score
-    fid_buffer_dir = os.path.join(args.path_helper["sample_path"], "fid_buffer")
+    fid_buffer_dir = os.path.join(
+        args.path_helper["sample_path"], "fid_buffer")
     os.makedirs(fid_buffer_dir, exist_ok=True)
 
     eval_iter = args.num_eval_imgs // args.eval_batch_size
@@ -481,7 +484,7 @@ def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir
 
         # Generate a batch of images
         gen_imgs = (
-            gen_net(z,labels)
+            gen_net(z, labels)
             .mul_(127.5)
             .add_(127.5)
             .clamp_(0.0, 255.0)
@@ -490,7 +493,8 @@ def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir
             .numpy()
         )
         for img_idx, img in enumerate(gen_imgs):
-            file_name = os.path.join(fid_buffer_dir, f"iter{iter_idx}_b{img_idx}.png")
+            file_name = os.path.join(
+                fid_buffer_dir, f"iter{iter_idx}_b{img_idx}.png")
             imsave(file_name, img)
         img_list.extend(list(gen_imgs))
 
@@ -568,6 +572,65 @@ def get_topk_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
     return topk_archs, (topk_hxs, topk_cxs)
 
 
+def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
+    """
+    Top-p sampling for the inference algorithm.
+    This cuts off the unreliable tail of the probability distribution and selects from the probability nucleus.
+
+    Params 
+    -----------
+    args: 
+    controller:
+    gen_net:
+    prev_archs: previous architectures
+    prev_hiddens: previous hidden vector
+
+    Returns
+    --------
+    A list of topp architecture and hiddens
+    """
+    logger.info(
+        f"=> get top {args.topp} archs out of {args.num_candidate} candidate archs...")
+    controller.eval()
+    cur_stage = controller.cur_stage
+    archs, _, _, hiddens = controller.sample(
+        args.num_candidate, with_hidden=True, prev_archs=prev_archs, prev_hiddens=prev_hiddens)
+    hxs, cxs = hiddens
+    arch_idx_perf_table = {}
+    for arch_idx in range(len(archs)):
+        logger.info(f"arch: {archs[arch_idx]}")
+        gen_net.set_arch(archs[arch_idx], cur_stage)
+        is_score = get_is(args, gen_net, args.rl_num_eval_img)
+        logger.info(f"get Inception score of {is_score}")
+        arch_idx_perf_table[arch_idx] = is_score
+    # Nucleus Sampling
+    total_score = sum(arch_idx_perf_table.values())
+    score_probs = {key: value/total_score for key,
+                   value in arch_idx_perf_table.items()}
+    sorted_probs = dict(
+        sorted(score_probs.item(), key=lambda kv: kv[1], reverse=True))
+    sorted_probs_lst = [item for item in sorted_probs.values()]
+    cum_probs_lst = np.cumsum(sorted_probs_lst)
+    indices_to_remove = cum_probs_lst > args.topp
+    num_to_rm = np.count_nonzero(indices_to_remove == True)
+    for _ in range(num_to_rm):
+        sorted_probs.popitem()
+    topp_arch_idx_perf = sorted_probs
+
+    topp_archs = []
+    topp_hxs = []
+    topp_cxs = []
+    logger.info(f"top {args.topp}% archs:")
+    for arch_idx_perf in topp_arch_idx_perf:
+        logger.info(arch_idx_perf)
+        arch_idx = arch_idx_perf[0]
+        topp_archs.append(archs[arch_idx])
+        topp_hxs.append(hxs[arch_idx].detach().requires_grad(False))
+        topp_cxs.append(cxs[arch_idx].detach().requires_grad(False))
+
+    return topp_archs, (topp_hxs, topp_cxs)
+
+
 class LinearLrDecay(object):
     def __init__(self, optimizer, start_lr, end_lr, decay_start_step, decay_end_step):
 
@@ -585,7 +648,8 @@ class LinearLrDecay(object):
         elif current_step >= self.decay_end_step:
             lr = self.end_lr
         else:
-            lr = self.start_lr - self.delta * (current_step - self.decay_start_step)
+            lr = self.start_lr - self.delta * \
+                (current_step - self.decay_start_step)
             for param_group in self.optimizer.param_groups:
                 param_group["lr"] = lr
         return lr
