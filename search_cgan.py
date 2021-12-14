@@ -247,7 +247,7 @@ def main():
         )
     else: 
         final_archs, _ = get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
-    logger.info("discovered archs: {final_archs}")
+    logger.info(f"discovered archs: {final_archs}")
 
 
 if __name__ == "__main__":
