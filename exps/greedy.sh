@@ -31,7 +31,8 @@ python search_cgan.py \
 --val_freq 20 \
 --ctrl_sample_batch 1 \
 --num_candidate 4 \
---topk 4 \
+--topk 0 \
+--topp 0.90 \
 --shared_epoch 15 \
 --grow_step1 15 \
 --grow_step2 35 \
