@@ -9,6 +9,7 @@ import operator
 import os
 from copy import deepcopy
 
+import operator
 import numpy as np
 import torch
 import torch.nn as nn
@@ -573,6 +574,7 @@ def get_topk_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
 
 
 def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
+    logger.info("Nucleus Sampling")
     """
     Top-p sampling for the inference algorithm.
     This cuts off the unreliable tail of the probability distribution and selects from the probability nucleus.
@@ -607,15 +609,16 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     total_score = sum(arch_idx_perf_table.values())
     score_probs = {key: value/total_score for key,
                    value in arch_idx_perf_table.items()}
-    sorted_probs = dict(
-        sorted(score_probs.item(), key=lambda kv: kv[1], reverse=True))
+    sorted_scores = dict(sorted(score_dict.items(), key=lambda kv:kv[1], reverse=True))
+    sorted_probs = dict(sorted(score_probs.items(), key=lambda kv:kv[1], reverse=True))
     sorted_probs_lst = [item for item in sorted_probs.values()]
     cum_probs_lst = np.cumsum(sorted_probs_lst)
     indices_to_remove = cum_probs_lst > args.topp
     num_to_rm = np.count_nonzero(indices_to_remove == True)
     for _ in range(num_to_rm):
-        sorted_probs.popitem()
-    topp_arch_idx_perf = sorted_probs
+        sorted_scores.popitem()
+    sorted_scores = sorted(sorted_scores.items(), key=operator.itemgetter(1), reverse=True)
+    topp_arch_idx_perf = sorted_scores
 
     topp_archs = []
     topp_hxs = []
