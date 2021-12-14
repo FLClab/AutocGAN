@@ -16,7 +16,7 @@ from tqdm import tqdm
 import cfg
 import datasets
 import models_search  # noqa
-from functions import get_topk_arch_hidden, train_controller, train_shared_cgan
+from functions import get_topk_arch_hidden, get_nucleus_arch_hidden, train_controller, train_shared_cgan
 from utils.fid_score import check_or_download_inception, create_inception_graph
 from utils.inception_score import _init_inception
 from utils.utils import create_logger, RunningStats, save_checkpoint, set_log_dir
@@ -175,9 +175,12 @@ def main():
             # save
             cur_stage = grow_ctrler.cur_stage(search_iter)
             logger.info("=> grow to stage {cur_stage}")
-            prev_archs, prev_hiddens = get_topk_arch_hidden(
-                args, controller, gen_net, prev_archs, prev_hiddens
-            )
+            if args.topk != 0:
+                prev_archs, prev_hiddens = get_topk_arch_hidden(
+                    args, controller, gen_net, prev_archs, prev_hiddens
+                )
+            else:
+                prev_archs, prev_hiddens = get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
 
             # grow section
             del controller
@@ -237,10 +240,13 @@ def main():
             False,
             args.path_helper["ckpt_path"],
         )
-
-    final_archs, _ = get_topk_arch_hidden(
-        args, controller, gen_net, prev_archs, prev_hiddens
-    )
+    
+    if args.topk !=0:
+        final_archs, _ = get_topk_arch_hidden(
+            args, controller, gen_net, prev_archs, prev_hiddens
+        )
+    else: 
+        final_archs, _ = get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     logger.info("discovered archs: {final_archs}")
 
 
