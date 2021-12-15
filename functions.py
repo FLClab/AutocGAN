@@ -598,6 +598,7 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     archs, _, _, hiddens = controller.sample(
         args.num_candidate, with_hidden=True, prev_archs=prev_archs, prev_hiddens=prev_hiddens)
     hxs, cxs = hiddens
+    
     arch_idx_perf_table = {}
     for arch_idx in range(len(archs)):
         logger.info(f"arch: {archs[arch_idx]}")
@@ -609,7 +610,7 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     total_score = sum(arch_idx_perf_table.values())
     score_probs = {key: value/total_score for key,
                    value in arch_idx_perf_table.items()}
-    sorted_scores = dict(sorted(score_dict.items(), key=lambda kv:kv[1], reverse=True))
+    sorted_scores = dict(sorted(arch_idx_perf_table.items(), key=lambda kv:kv[1], reverse=True))
     sorted_probs = dict(sorted(score_probs.items(), key=lambda kv:kv[1], reverse=True))
     sorted_probs_lst = [item for item in sorted_probs.values()]
     cum_probs_lst = np.cumsum(sorted_probs_lst)
@@ -617,8 +618,7 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     num_to_rm = np.count_nonzero(indices_to_remove == True)
     for _ in range(num_to_rm):
         sorted_scores.popitem()
-    sorted_scores = sorted(sorted_scores.items(), key=operator.itemgetter(1), reverse=True)
-    topp_arch_idx_perf = sorted_scores
+    topp_arch_idx_perf = sorted(sorted_scores.items(), key=operator.itemgetter(1), reverse=True)
 
     topp_archs = []
     topp_hxs = []
@@ -627,6 +627,7 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     for arch_idx_perf in topp_arch_idx_perf:
         logger.info(arch_idx_perf)
         arch_idx = arch_idx_perf[0]
+        print(arch_idx)
         topp_archs.append(archs[arch_idx])
         topp_hxs.append(hxs[arch_idx].detach().requires_grad(False))
         topp_cxs.append(cxs[arch_idx].detach().requires_grad(False))
