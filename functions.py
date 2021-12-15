@@ -629,8 +629,8 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
         arch_idx = arch_idx_perf[0]
         print(arch_idx)
         topp_archs.append(archs[arch_idx])
-        topp_hxs.append(hxs[arch_idx].detach().requires_grad(False))
-        topp_cxs.append(cxs[arch_idx].detach().requires_grad(False))
+        topp_hxs.append(hxs[arch_idx].detach().requires_grad_(False))
+        topp_cxs.append(cxs[arch_idx].detach().requires_grad_(False))
 
     return topp_archs, (topp_hxs, topp_cxs)
 
