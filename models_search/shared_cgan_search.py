@@ -74,7 +74,7 @@ class Generator(nn.Module):
         one_hot_labels.resize_(bs, self.n_classes).zero_()
         one_hot_labels = torch.cuda.LongTensor(one_hot_labels)
         labels = labels.view(bs,1)
-        one_hot_labels = torch.scatter(one_hot_labels, 1, labels.long().cuda(), 1)
+        one_hot_labels = torch.scatter(one_hot_labels, 1, labels.long(), 1)
 
         y_ = self.fc2(one_hot_labels.float())
         y_ = F.relu(y_)
@@ -204,7 +204,7 @@ class Discriminator(nn.Module):
         )
         self.l5 = nn.Linear(args.n_classes, 1, bias=False)
 
-        self.fc1  = nn.Linear(128+1000, 1024, bias=False)
+        self.fc1  = nn.Linear(64+1000, 1024, bias=False)
         self.fc2 = nn.Linear(1024, 1, bias=False)
         self.fc3 = nn.Linear(10, 1000, bias=False)
 
@@ -225,14 +225,14 @@ class Discriminator(nn.Module):
 
         # Global average pooling
         h = h.sum(2).sum(2)
-        h = h.view(bs, 128)
+        h = h.view(bs, 64)
 
         # Labels
         one_hot_labels = torch.LongTensor(bs, self.n_classes).cuda()
         one_hot_labels.resize_(bs, self.n_classes).zero_()
         one_hot_labels = torch.cuda.LongTensor(one_hot_labels)
         labels = labels.view(bs,1)
-        one_hot_labels = torch.scatter(one_hot_labels, 1, labels.long().cuda(), 1)
+        one_hot_labels = torch.scatter(one_hot_labels, 1, labels.long(), 1)
 
         y_ = self.fc3(one_hot_labels.float())
         y_ = F.relu(y_)
