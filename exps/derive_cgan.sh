@@ -21,5 +21,5 @@ python train_derived.py \
 --init_type xavier_uniform \
 --n_critic 5 \
 --val_freq 20 \
---arch 0 0 1 1 1 0 1 1 1 1 0 2 1 3 \
---exp_name derive_cgan
+--arch 0 0 1 1 1 0 1 1 1 0 0 1 1 1 \
+--exp_name derive_cgan_p90_BS4
