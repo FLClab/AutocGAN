@@ -9,7 +9,6 @@ import operator
 import os
 from copy import deepcopy
 
-import operator
 import numpy as np
 import torch
 import torch.nn as nn
@@ -139,7 +138,6 @@ def train_shared_cgan(
             step += 1
 
     return dynamic_reset
-
 
 
 def train_shared(
@@ -319,6 +317,9 @@ def train(
             gen_z = torch.cuda.FloatTensor(
                 np.random.normal(0, 1, (args.gen_batch_size, args.latent_dim))
             )
+            labels = torch.cuda.LongTensor(
+                np.random.randint(0, args.n_classes, (args.gen_batch_size))
+            )
             gen_imgs = gen_net(gen_z, labels)
             fake_validity = dis_net(gen_imgs, labels)
 
@@ -461,71 +462,6 @@ def get_is(args, gen_net: nn.Module, num_img):
     return mean
 
 
-def validate_gan(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir=True):
-    writer = writer_dict["writer"]
-    global_steps = writer_dict["valid_global_steps"]
-
-    # eval mode
-    gen_net = gen_net.eval()
-
-    # generate images
-    sample_imgs = gen_net(fixed_z, labels)
-    img_grid = make_grid(sample_imgs, nrow=5, normalize=True, scale_each=True)
-
-    # get fid and inception score
-    fid_buffer_dir = os.path.join(
-        args.path_helper["sample_path"], "fid_buffer")
-    os.makedirs(fid_buffer_dir, exist_ok=True)
-
-    eval_iter = args.num_eval_imgs // args.eval_batch_size
-    img_list = list()
-    for iter_idx in tqdm(range(eval_iter), desc="sample images"):
-        z = torch.cuda.FloatTensor(
-            np.random.normal(0, 1, (args.eval_batch_size, args.latent_dim))
-        )
-
-        # Generate a batch of images
-        gen_imgs = (
-            gen_net(z, labels)
-            .mul_(127.5)
-            .add_(127.5)
-            .clamp_(0.0, 255.0)
-            .permute(0, 2, 3, 1)
-            .to("cpu", torch.uint8)
-            .numpy()
-        )
-        for img_idx, img in enumerate(gen_imgs):
-            file_name = os.path.join(
-                fid_buffer_dir, f"iter{iter_idx}_b{img_idx}.png")
-            imsave(file_name, img)
-        img_list.extend(list(gen_imgs))
-
-    # get inception score
-    logger.info("=> calculate inception score")
-    mean, std = get_inception_score(img_list)
-    print(f"Inception score: {mean}")
-
-    # get fid score
-    logger.info("=> calculate fid score")
-    fid_score = calculate_fid_given_paths(
-        [fid_buffer_dir, fid_stat], inception_path=None
-    )
-    print(f"FID score: {fid_score}")
-
-    if clean_dir:
-        os.system("rm -r {}".format(fid_buffer_dir))
-    else:
-        logger.info(f"=> sampled images are saved to {fid_buffer_dir}")
-
-    writer.add_image("sampled_images", img_grid, global_steps)
-    writer.add_scalar("Inception_score/mean", mean, global_steps)
-    writer.add_scalar("Inception_score/std", std, global_steps)
-    writer.add_scalar("FID_score", fid_score, global_steps)
-
-    writer_dict["valid_global_steps"] = global_steps + 1
-
-    return mean, fid_score
-
 def validate(args, fixed_z, fid_stat, gen_net: nn.Module, writer_dict, clean_dir=True):
     writer = writer_dict["writer"]
     global_steps = writer_dict["valid_global_steps"]
@@ -644,7 +580,6 @@ def get_topk_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
 
 
 def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens):
-    logger.info("Nucleus Sampling")
     """
     Top-p sampling for the inference algorithm.
     This cuts off the unreliable tail of the probability distribution and selects from the probability nucleus.
@@ -668,7 +603,6 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     archs, _, _, hiddens = controller.sample(
         args.num_candidate, with_hidden=True, prev_archs=prev_archs, prev_hiddens=prev_hiddens)
     hxs, cxs = hiddens
-    
     arch_idx_perf_table = {}
     for arch_idx in range(len(archs)):
         logger.info(f"arch: {archs[arch_idx]}")
@@ -680,15 +614,15 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     total_score = sum(arch_idx_perf_table.values())
     score_probs = {key: value/total_score for key,
                    value in arch_idx_perf_table.items()}
-    sorted_scores = dict(sorted(arch_idx_perf_table.items(), key=lambda kv:kv[1], reverse=True))
-    sorted_probs = dict(sorted(score_probs.items(), key=lambda kv:kv[1], reverse=True))
+    sorted_probs = dict(
+        sorted(score_probs.item(), key=lambda kv: kv[1], reverse=True))
     sorted_probs_lst = [item for item in sorted_probs.values()]
     cum_probs_lst = np.cumsum(sorted_probs_lst)
     indices_to_remove = cum_probs_lst > args.topp
     num_to_rm = np.count_nonzero(indices_to_remove == True)
     for _ in range(num_to_rm):
-        sorted_scores.popitem()
-    topp_arch_idx_perf = sorted(sorted_scores.items(), key=operator.itemgetter(1), reverse=True)
+        sorted_probs.popitem()
+    topp_arch_idx_perf = sorted_probs
 
     topp_archs = []
     topp_hxs = []
@@ -697,10 +631,9 @@ def get_nucleus_arch_hidden(args, controller, gen_net, prev_archs, prev_hiddens)
     for arch_idx_perf in topp_arch_idx_perf:
         logger.info(arch_idx_perf)
         arch_idx = arch_idx_perf[0]
-        print(arch_idx)
         topp_archs.append(archs[arch_idx])
-        topp_hxs.append(hxs[arch_idx].detach().requires_grad_(False))
-        topp_cxs.append(cxs[arch_idx].detach().requires_grad_(False))
+        topp_hxs.append(hxs[arch_idx].detach().requires_grad(False))
+        topp_cxs.append(cxs[arch_idx].detach().requires_grad(False))
 
     return topp_archs, (topp_hxs, topp_cxs)
 
