@@ -40,6 +40,9 @@ def main():
     # import network
     gen_net = eval("models." + args.gen_model + ".Generator")(args=args).cuda()
 
+    # build network
+    gen_net.set_arch(args.arch, cur_stage=2)
+
     # fid stat
     if args.dataset.lower() == "cifar10":
         fid_stat = "fid_stat/fid_stats_cifar10_train.npz"
