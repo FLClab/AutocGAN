@@ -22,6 +22,6 @@ python test.py \
 --n_critic 5 \
 --val_freq 20 \
 --arch 0 0 1 1 1 0 1 1 0 0 0 1 1 3 \
---load_path 'logs/derive_cgan_p90_BS4_2021_12_16_15_12_49/Model/checkpoint_best.pth' \
+--load_path 'logs/derive_cgan_greedy_2021_12_16_17_24_46/Model/checkpoint_best.pth' \
 --n_classes 10 \
 --exp_name derive_cgan_p90_BS4
