@@ -12,7 +12,7 @@ font = {'size'   : 16}
 
 matplotlib.rc('font', **font)
 
-archs = pd.read_csv('archs_best.csv')
+archs = pd.read_csv('archs.csv')
 
 fig, ax = plt.subplots(1,1)
 
