@@ -23,7 +23,7 @@ FID = np.array(archs['FID'])
 
 
 # Computing time to reach better IS than Greedy
-is_to_beat = 8.27
+is_to_beat = 8.55
 iterations_for_better = []
 for i in range(100000):
 	random = 0
