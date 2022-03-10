@@ -18,13 +18,14 @@ Note : If the docker has access to multiple GPUs, use the following line in the 
 ``` sh exps/autocgan_search.sh ```
 
 ## Training the found cGAN architecture
-Change the parameter ```--arch``` for the Top-1 architecture found from the searching phase in the file exps/derive_cgan.sh. Also use a descriptive name for the `exp_name` parameter, as it will be used for testing.  
-To launch training: 
+1) Change the parameter ```--arch``` for the Top-1 architecture found from the searching phase in the file exps/derive_cgan.sh.
+2) Use a descriptive name for the `exp_name` parameter, as it will be used for testing.  
+3) To launch training: 
 ``` sh exps/derive_cgan.sh ```
 
 ## Testing the trained cGAN architecture
-Change the parameter ```--arch``` and ```--load_path``` in the file ```exps/test_cgan.sh```.   
-The load path corresponds to the name given to the training experiment.   
+1) Change the parameter ```--arch``` and ```--load_path``` in the file ```exps/test_cgan.sh```.   
+2) The load path corresponds to the name given to the training experiment.   
 For example, if you set `exp_name derive_cgan_demo` for the training, then the load path here should be `logs/derive_cgan_demo/Model/checkpoint_best.pth`  
-To launch testing:    
+3) To launch testing:    
 ```sh exps/test_cgan.sh```
