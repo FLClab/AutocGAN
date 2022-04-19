@@ -28,7 +28,7 @@ class Generator(nn.Module):
             nn.Tanh(),
         )
 
-        self.fc2 = nn.Linear(10, 1000)
+        self.fc2 = nn.Linear(args.n_classes, 1000)
         self.fc = nn.Linear(args.latent_dim+1000, 128)
 
         self.n_classes = args.n_classes
@@ -206,7 +206,7 @@ class Discriminator(nn.Module):
 
         self.fc1  = nn.Linear(128+1000, 1024, bias=False)
         self.fc2 = nn.Linear(1024, 1, bias=False)
-        self.fc3 = nn.Linear(10, 1000, bias=False)
+        self.fc3 = nn.Linear(args.n_classes, 1000, bias=False)
 
         if args.d_spectral_norm:
             self.l5 = nn.utils.spectral_norm(self.l5)
