@@ -17,7 +17,11 @@ Note : If the docker has access to multiple GPUs, use the following line in the 
 3) To launch the search:
 ``` sh exps/autocgan_search.sh ```
 
-## Training the found cGAN architecture
+## Training the discovered cGAN architecture
+### Download or compute the precalculated statistics for the FID score
+The precalculated statistics for CIFAR-10 and SVHN are available [on the website of the Institute of Bioinformatics of the Johannes Kepler University](http://bioinf.jku.at/research/ttur/). The .npz file must be downloaded and included in the fid_stat folder prior to training, since it is required to compute the FID score. For a different dataset, the statistics can be computed using the cal_fid_stat.py function in utils. Specify the options ```--data_path``` (should point to a folder that contains all the images in .png format) and ```output_file``` (the title of the resulting .npz file).
+
+### Train the discovered architecture
 1) Change the parameter ```--arch``` for the Top-1 architecture found from the searching phase in the file exps/derive_cgan.sh.
 2) Use a descriptive name for the `exp_name` parameter, as it will be used for testing.  
 3) To launch training: 
