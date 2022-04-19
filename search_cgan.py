@@ -153,7 +153,8 @@ def main():
         controller, ctrl_optimizer = create_ctrler(args, cur_stage, weights_init)
 
     # set up data_loader
-    dataset = datasets.ImageDataset(args, 2 ** (cur_stage + 3))
+    #dataset = datasets.ImageDataset(args, 2 ** (cur_stage + 3))
+    dataset = datasets.ImageDataset(args, int(args.img_size / 2 ** (2 - cur_stage)))
     train_loader = dataset.train
 
     logger.info(args)
@@ -187,7 +188,8 @@ def main():
             del ctrl_optimizer
             controller, ctrl_optimizer = create_ctrler(args, cur_stage, weights_init)
 
-            dataset = datasets.ImageDataset(args, 2 ** (cur_stage + 3))
+            #dataset = datasets.ImageDataset(args, 2 ** (cur_stage + 3)) ### Change for different img_size
+            dataset = datasets.ImageDataset(args, int(args.img_size / 2 ** (2 - cur_stage))) 
             train_loader = dataset.train
 
         dynamic_reset = train_shared_cgan(

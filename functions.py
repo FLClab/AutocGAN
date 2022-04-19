@@ -71,6 +71,7 @@ def train_shared_cgan(
 
             real_validity = dis_net(real_imgs, labels)
             fake_imgs = gen_net(z, labels).detach()
+            
             assert fake_imgs.size() == real_imgs.size(), print(
                 f"fake image size is {fake_imgs.size()}, "
                 f"while real image size is {real_imgs.size()}"

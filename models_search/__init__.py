@@ -4,4 +4,4 @@
 # @Link    : None
 # @Version : 0.0
 
-from models_search import controller, shared_gan, shared_cgan
+from models_search import controller, shared_gan, shared_cgan, shared_cgan_search

@@ -39,7 +39,7 @@ class ImageDataset(object):
             self.train = torch.utils.data.DataLoader(
                 Dt(
                     root=args.data_path,
-                    split="train+unlabeled",
+                    split="train",
                     transform=transform,
                     download=True,
                 ),
