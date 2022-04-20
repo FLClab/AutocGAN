@@ -35,3 +35,11 @@ The precalculated statistics for CIFAR-10 and SVHN are available [on the website
 For example, if you set `exp_name derive_cgan_demo` for the training, then the load path here should be `logs/derive_cgan_demo/Model/checkpoint_best.pth`  
 3) To launch testing:    
 ```sh exps/test_cgan.sh```
+
+## Pre-configured experiment files
+
+We provide pre-configured experiment files to reproduce the work published in the paper. 
+- exps/autocgan_search_cifar10_topk.sh : search for an architecture using top-K sampling for the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset
+- exps/autocgan_search_cifar100_topp.sh : search for an architecture using top-P sampling for the [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) dataset
+- exps/autocgan_search_stl_topp.sh : search for an architecture using top-P sampling for the [STL10](https://cs.stanford.edu/~acoates/stl10/) dataset, using the original size (96x96)
+- exps/autocgan_search_stl_topp_resize48.sh : search for an architecture using top-P sampling for the STL10 dataset, resized to half the original size (48x48)
