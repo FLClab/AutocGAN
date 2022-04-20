@@ -11,6 +11,8 @@ Note : If the docker has access to multiple GPUs, use the following line in the 
 
 ```export CUDA_VISIBLE_DEVICES=0```
 
+We have been using CUDA V10.0.130 for this work.
+
 ## Searching for a cGAN architecture
 1) Change the `topp`, `topk` and `num_candidate` (beam size) parameters in `exps/autocgan_search.sh` for a search with the desired configuration. 
 2) Top-K sampling is used by default. To use top-p, you need to set `topk 0`.
