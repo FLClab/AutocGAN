@@ -39,7 +39,8 @@ For example, if you set `exp_name derive_cgan_demo` for the training, then the l
 ## Pre-configured experiment files
 
 We provide pre-configured experiment files to reproduce the work published in the paper. 
-- exps/autocgan_search_cifar10_topk.sh : search for an architecture using top-K sampling for the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset
-- exps/autocgan_search_cifar100_topp.sh : search for an architecture using top-P sampling for the [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) dataset
-- exps/autocgan_search_stl_topp.sh : search for an architecture using top-P sampling for the [STL10](https://cs.stanford.edu/~acoates/stl10/) dataset, using the original size (96x96)
-- exps/autocgan_search_stl_topp_resize48.sh : search for an architecture using top-P sampling for the STL10 dataset, resized to half the original size (48x48)
+- exps/autocgan_search_cifar10_topk.sh : search for an architecture using top-K sampling for the [CIFAR-10](https://www.cs.toronto.edu/~kriz/cifar.html) dataset.
+- exps/autocgan_search_cifar100_topp.sh : search for an architecture using top-P sampling for the [CIFAR-100](https://www.cs.toronto.edu/~kriz/cifar.html) dataset.
+- exps/autocgan_search_stl_topp.sh : search for an architecture using top-P sampling for the [STL10](https://cs.stanford.edu/~acoates/stl10/) dataset, using the original size (96x96).
+- exps/autocgan_search_stl_topp_resize48.sh : search for an architecture using top-P sampling for the STL10 dataset, resized to half the original size (48x48).
+- exps/autogan_search_svhn_topp.sh : search for an architecture using top-P sampling for the cropped [SVHN](http://ufldl.stanford.edu/housenumbers/) dataset.
