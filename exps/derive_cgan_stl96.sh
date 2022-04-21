@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 python train_derived.py \
--gen_bs 128 \
--dis_bs 128 \
---dataset cifar100 \
---bottom_width 4 \
---img_size 32 \
+-gen_bs 4 \
+-dis_bs 4 \
+--dataset stl10 \
+--bottom_width 12 \
+--eval_batch_size 10 \
+--img_size 96 \
 --max_iter 50000 \
 --gen_model shared_cgan \
 --dis_model shared_cgan \
@@ -21,6 +22,6 @@ python train_derived.py \
 --init_type xavier_uniform \
 --n_critic 5 \
 --val_freq 20 \
---arch 0 1 1 1 1 0 1 1 1 1 0 1 1 0 \
---n_classes 100 \
---exp_name derive_cifar100
+--arch 1 1 0 1 0 0 0 1 1 1 0 0 0 3 \
+--n_classes 10 \
+--exp_name derive_stl96

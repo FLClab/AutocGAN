@@ -21,7 +21,7 @@ python test.py \
 --init_type xavier_uniform \
 --n_critic 5 \
 --val_freq 20 \
---arch 0 0 1 1 1 0 1 1 0 0 0 1 1 3 \
---load_path 'logs/derive_cgan_greedy_2021_12_16_17_24_46/Model/checkpoint_best.pth' \
+--arch 1 1 1 1 1 0 1 1 0 1 0 2 1 3 \
+--load_path 'logs/derive_cgan_cifar10_2022_xx_xx_xx_xx_xx/Model/checkpoint_best.pth' \
 --n_classes 10 \
---exp_name derive_cgan_greedy
+--exp_name test_cgan_cifar10
