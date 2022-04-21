@@ -94,7 +94,9 @@ def main():
     elif args.dataset.lower() == "cifar100":
         fid_stat = "fid_stat/fid_stats_cifar100_train.npz"
     elif args.dataset.lower() == "stl10":
-        fid_stat = "fid_stat/stl10_train_unlabeled_fid_stats_48.npz"
+        fid_stat = "fid_stat/fid_stats_stl10_train.npz"
+    elif args.dataset.lower() == "svhn":
+        fid_stat = "fid_stat/fid_stats_svhn_train.npz"
     else:
         raise NotImplementedError(f"no fid stat for {args.dataset.lower()}")
     assert os.path.exists(fid_stat)
