@@ -24,4 +24,4 @@ python test.py \
 --arch 0 0 1 1 1 0 1 1 0 0 0 1 1 3 \
 --load_path 'logs/derive_cgan_greedy_2021_12_16_17_24_46/Model/checkpoint_best.pth' \
 --n_classes 10 \
---exp_name derive_cgan_p90_BS4
+--exp_name derive_cgan_greedy

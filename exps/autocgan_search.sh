@@ -6,8 +6,8 @@ python search_cgan.py \
 --dataset cifar10 \
 --bottom_width 4 \
 --img_size 32 \
---gen_model shared_cgan \
---dis_model shared_cgan \
+--gen_model shared_cgan_search \
+--dis_model shared_cgan_search \
 --controller controller \
 --latent_dim 128 \
 --gf_dim 128 \
