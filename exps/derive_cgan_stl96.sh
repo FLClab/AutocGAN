@@ -24,4 +24,5 @@ python train_derived.py \
 --val_freq 20 \
 --arch 1 1 0 1 0 0 0 1 1 1 0 0 0 3 \
 --n_classes 10 \
---exp_name derive_stl96
+--exp_name derive_stl96 \
+--eval_batch_size 4
